@@ -1,12 +1,18 @@
 const CACHE_NAME = "pwa-react-cache";
-const urlsToCache = ["/index.html", "/offline.html"];
+const urlsToCache = [
+  "/index.html",
+  "/offline.html",
+  "/manifest.json",
+  "/images/bg.jpg",
+];
 
 const self = this;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("Opened cache");
+      console.log("[Service Worker] Caching required files...");
+
       return cache.addAll(urlsToCache);
     })
   );
@@ -14,13 +20,19 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      console.log(response);
-      if (response) {
-        return response;
-      }
-      return fetch(event.request).catch(() => caches.match("/offline.html"));
-    })
+    fetch(event.request)
+      .then((response) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, response.clone());
+
+          return response;
+        });
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || caches.match("/offline.html");
+        });
+      })
   );
 });
 
@@ -33,6 +45,8 @@ self.addEventListener("active", (event) => {
       Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhiteList.includes(cacheName)) {
+            console.log("[Service Worker] Deleting old cache...");
+
             return caches.delete(cacheName);
           }
         })
