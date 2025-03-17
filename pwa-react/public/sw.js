@@ -11,7 +11,7 @@ const self = this;
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("[Service Worker] Caching required files...");
+      console.log("[Service Worker] Caching required files...", cache);
 
       return cache.addAll(urlsToCache);
     })
@@ -23,6 +23,8 @@ self.addEventListener("fetch", (event) => {
     fetch(event.request)
       .then((response) => {
         return caches.open(CACHE_NAME).then((cache) => {
+          console.log("[Service Worker] Caching new files...", response.url);
+          
           cache.put(event.request, response.clone());
 
           return response;
@@ -30,6 +32,8 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => {
         return caches.match(event.request).then((cachedResponse) => {
+          console.log("[Service Worker] Fetching cached files...", event.request.url, cachedResponse);
+
           return cachedResponse || caches.match("/offline.html");
         });
       })
