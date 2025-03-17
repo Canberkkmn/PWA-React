@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetchWeather } from "./api/fetchWeather";
 
 import "./App.css";
@@ -7,9 +7,24 @@ const App = () => {
   const [query, setQuery] = useState("");
   const [weather, setWeather] = useState({});
 
+  useEffect(() => {
+    Notification.requestPermission();
+  }, []);
+
   const search = async (e) => {
     if (e.key === "Enter") {
       const data = await fetchWeather(query);
+
+      Notification.requestPermission().then((result) => {
+        if (result === "granted") {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification("Weather App", {
+              body: `Weather in ${data.name} is ${data.main.temp}°C`,
+              icon: `https://openweathermap.org/img/wn/${data.weather[0].icon}.png`,
+            });
+          });
+        }
+      });
 
       setWeather(data);
       setQuery("");
